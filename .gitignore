@@ -1,0 +1,12 @@
+# Private datasets
+data/
+*.csv
+*.pcap
+*.pcapng
+*.h5
+*.parquet
+
+# Python
+__pycache__/
+*.pyc
+.venv/
