@@ -1,4 +1,3 @@
-# src/api/main.py
 from __future__ import annotations
 
 import io
@@ -61,16 +60,7 @@ async def predict_summary(
     top_k: int = 50,
     min_score: float = 0.0,
 ) -> Dict[str, Any]:
-    """
-    Dashboard-friendly summary:
-    - row count
-    - prediction counts (all rows)
-    - score stats (if available)
-    - alert_count_above_threshold
-    - top_k alerts above min_score (highest score first)
-    - perf: elapsed_ms, rows_per_sec
-    - model_tag: static string for now (update later when you version models)
-    """
+    # runs the uploaded CSV through the model and returns everything the dashboard needs
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Upload a .csv file")
 
@@ -92,7 +82,7 @@ async def predict_summary(
     response: Dict[str, Any] = {
         "n_rows": result.get("n_rows", len(preds)),
         "prediction_counts": dict(counts),
-        "model_tag": "latest.joblib (baseline logreg pipeline)",  # update later when you add RF/IF models
+        "model_tag": "latest.joblib (baseline logreg pipeline)",  # swap this out when RF/IF models are added
         "elapsed_ms": round(elapsed_ms, 2),
         "rows_per_sec": round((len(preds) / (elapsed_ms / 1000.0)) if elapsed_ms > 0 else 0.0, 2),
         "min_score_used": float(min_score),
@@ -114,7 +104,6 @@ async def predict_summary(
 
             idx = np.where(mask)[0]
             if idx.size:
-                # sort by score desc and take top_k
                 idx_sorted = idx[np.argsort(s[idx])[::-1]][:top_k]
                 response["top_alerts"] = [
                     {"row_index": int(i), "pred": preds[int(i)], "score": float(s[int(i)])}
