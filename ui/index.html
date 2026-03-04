@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Wi-Fi IDS</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root{
+      --bg:#0b0f17;
+      --panel:#111827;
+      --panel2:#0f172a;
+      --border:#243041;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --good:#22c55e;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    .wrap{max-width:1100px;margin:0 auto;padding:18px}
+
+    .top{
+      display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;
+      padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--panel);
+    }
+    .title{display:flex;flex-direction:column;gap:4px}
+    .title h1{margin:0;font-size:16px}
+    .title .sub{color:var(--muted);font-size:12px}
+
+    .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    input[type="file"]{
+      padding:8px 10px;border-radius:10px;border:1px dashed var(--border);
+      background:var(--panel2);color:var(--muted);
+    }
+    button{
+      border:1px solid var(--border);
+      background:#0b1220;color:var(--text);
+      padding:9px 12px;border-radius:10px;cursor:pointer;
+    }
+    button:hover{background:#0d1527}
+
+    .status{margin-top:10px;color:var(--muted);font-size:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .dot{width:9px;height:9px;border-radius:999px;background:var(--warn)}
+    .dot.ok{background:var(--good)}
+    .dot.err{background:var(--bad)}
+    .pill{
+      padding:4px 8px;border-radius:999px;border:1px solid var(--border);
+      background:var(--panel);color:var(--muted);font-size:12px;
+    }
+
+    .error{
+      display:none;margin-top:10px;
+      padding:10px 12px;border-radius:10px;
+      border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.08);
+      color:#fecaca;white-space:pre-wrap;font-size:12px;
+    }
+
+    .grid{margin-top:14px;display:grid;grid-template-columns:1fr;gap:14px}
+    @media(min-width:900px){.grid{grid-template-columns:1.25fr .75fr}}
+
+    .panel{
+      border:1px solid var(--border);border-radius:12px;background:var(--panel);padding:12px;
+    }
+    .panel h2{margin:0 0 10px 0;font-size:13px;color:var(--muted);font-weight:600}
+
+    /* Summary cards */
+    .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    @media(min-width:650px){.cards{grid-template-columns:repeat(4,1fr)}}
+    .card{
+      background:var(--panel2);border:1px solid var(--border);
+      border-radius:12px;padding:10px;
+    }
+    .card-label{color:var(--muted);font-size:11px}
+    .card-value{margin-top:6px;font-size:18px;font-weight:700}
+    .card-sub{font-size:11px;color:var(--muted);margin-top:3px}
+
+    /* Traffic split bar */
+    .split-bar{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--panel2);display:none}
+    .split-bar-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:6px}
+    .split-track{height:8px;border-radius:999px;background:var(--border);overflow:hidden}
+    .split-fill{height:100%;border-radius:999px;background:var(--bad);transition:width .3s}
+
+    .row{
+      display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+      padding:10px;border-radius:12px;border:1px solid var(--border);background:var(--panel2);
+      margin-top:10px;
+    }
+    .row label{font-size:12px;color:var(--muted)}
+    input[type="range"]{width:220px}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace}
+    .right{text-align:right}
+
+    table{width:100%;border-collapse:collapse;background:var(--panel2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    th,td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px;text-align:left}
+    th{color:var(--muted);font-weight:600}
+    tr:hover td{background:rgba(255,255,255,.03)}
+    .sev-high{color:var(--bad);font-weight:700}
+    .sev-med{color:var(--warn);font-weight:700}
+    .sev-low{color:var(--good);font-weight:700}
+
+    /* Model info panel */
+    .model-grid{display:grid;grid-template-columns:1fr;gap:16px}
+    @media(min-width:700px){.model-grid{grid-template-columns:180px 1fr}}
+    .model-meta{display:flex;flex-direction:column;gap:6px}
+    .accuracy-big{font-size:32px;font-weight:700;color:var(--good)}
+    .model-stat{font-size:12px;color:var(--muted)}
+    .model-stat span{color:var(--text)}
+    .f1-row td:first-child{color:var(--text)}
+    .f1-bar-wrap{height:6px;background:var(--border);border-radius:999px;overflow:hidden;width:100px}
+    .f1-bar{height:100%;border-radius:999px;background:#3b82f6}
+
+    .footer{margin-top:10px;color:var(--muted);font-size:12px}
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+
+    <!-- Header -->
+    <div class="top">
+      <div class="title">
+        <h1>Wi-Fi IDS</h1>
+        <div class="sub">Upload processed features CSV to scan for attacks</div>
+      </div>
+      <div class="controls">
+        <input id="file" type="file" accept=".csv" />
+        <button id="run">Run</button>
+      </div>
+    </div>
+
+    <div class="status">
+      <div id="dot" class="dot"></div>
+      <div id="statusText">Choose a CSV and click Run.</div>
+      <span class="pill" id="modelTag">Model: —</span>
+      <span class="pill" id="perf">Perf: —</span>
+    </div>
+
+    <div id="errorBox" class="error"></div>
+
+    <!-- Main grid -->
+    <div class="grid">
+
+      <!-- Left: Detection summary -->
+      <div class="panel">
+        <h2>Detection Summary</h2>
+
+        <div class="cards">
+          <div class="card">
+            <div class="card-label">Rows scanned</div>
+            <div class="card-value" id="rows">—</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Flagged</div>
+            <div class="card-value" id="flagged">—</div>
+            <div class="card-sub" id="flaggedPct"></div>
+          </div>
+          <div class="card">
+            <div class="card-label">Clean</div>
+            <div class="card-value" id="clean">—</div>
+            <div class="card-sub" id="cleanPct"></div>
+          </div>
+          <div class="card">
+            <div class="card-label">Avg confidence</div>
+            <div class="card-value" id="avg">—</div>
+          </div>
+        </div>
+
+        <!-- Flagged vs clean bar -->
+        <div class="split-bar" id="splitBar">
+          <div class="split-bar-labels">
+            <span id="splitLeft">Flagged 0%</span>
+            <span id="splitRight">Clean 100%</span>
+          </div>
+          <div class="split-track">
+            <div class="split-fill" id="splitFill" style="width:0%"></div>
+          </div>
+        </div>
+
+        <!-- Threshold -->
+        <div class="row">
+          <label for="thr">Alert threshold:</label>
+          <input id="thr" type="range" min="0.50" max="0.99" step="0.01" value="0.90" />
+          <span class="pill mono" id="thrVal">0.90</span>
+          <span class="pill" id="maxScore">Max: —</span>
+        </div>
+
+        <!-- Attack distribution chart -->
+        <div style="margin-top:12px">
+          <canvas id="bar"></canvas>
+        </div>
+      </div>
+
+      <!-- Right: Top alerts -->
+      <div class="panel">
+        <h2>Top alerts</h2>
+
+        <table>
+          <thead>
+            <tr>
+              <th class="mono">row</th>
+              <th>type</th>
+              <th>sev</th>
+              <th class="right mono">score</th>
+            </tr>
+          </thead>
+          <tbody id="alertsTbl">
+            <tr><td colspan="4" style="color:var(--muted)">No data yet.</td></tr>
+          </tbody>
+        </table>
+
+        <div class="footer">
+          <span class="mono">POST /predict_summary</span> · Swagger at <span class="mono">/docs</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom: Model info -->
+    <div class="panel" style="margin-top:14px">
+      <h2>Model Info</h2>
+      <div class="model-grid">
+        <div class="model-meta">
+          <div class="accuracy-big" id="miAccuracy">—</div>
+          <div class="model-stat">Overall accuracy</div>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:4px">
+            <div class="model-stat">Model: <span id="miTag">—</span></div>
+            <div class="model-stat">Train: <span id="miTrain">—</span> samples</div>
+            <div class="model-stat">Test: <span id="miTest">—</span> samples</div>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Attack type</th>
+              <th>F1 score</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="f1Tbl">
+            <tr><td colspan="3" style="color:var(--muted)">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+
+    const LABELS = {
+      1:  "Deauth",
+      2:  "Disas",
+      3:  "Re/Assoc",
+      4:  "Rogue AP",
+      5:  "Krack",
+      6:  "Kr00k",
+      7:  "SSH",
+      8:  "Botnet",
+      9:  "Malware",
+      10: "SQL Injection",
+      11: "SSDP",
+      12: "Evil Twin",
+      13: "Website Spoofing",
+    };
+
+    const labelFor  = id => LABELS[+id] ?? `Attack ${+id}`;
+    const severityFor = s => s >= 0.97 ? {txt:"HIGH",cls:"sev-high"} : s >= 0.93 ? {txt:"MED",cls:"sev-med"} : {txt:"LOW",cls:"sev-low"};
+
+    const dot        = $("dot");
+    const statusText = $("statusText");
+    const errorBox   = $("errorBox");
+    const modelTag   = $("modelTag");
+    const perf       = $("perf");
+    const thr        = $("thr");
+    const thrVal     = $("thrVal");
+    const alertsTbl  = $("alertsTbl");
+
+    let chart = null;
+
+    thr.addEventListener("input", () => { thrVal.textContent = Number(thr.value).toFixed(2); });
+
+    function setStatus(kind, text){
+      dot.classList.remove("ok","err");
+      if(kind==="ok")  dot.classList.add("ok");
+      if(kind==="err") dot.classList.add("err");
+      statusText.textContent = text;
+    }
+    function showError(msg){ errorBox.style.display="block"; errorBox.textContent=msg; setStatus("err","Error"); }
+    function clearError(){ errorBox.style.display="none"; errorBox.textContent=""; }
+
+    function renderChart(counts){
+      const ids  = Object.keys(counts).map(Number).sort((a,b)=>a-b);
+      const ctx  = $("bar").getContext("2d");
+      if(chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: "bar",
+        data: { labels: ids.map(labelFor), datasets:[{ label:"Count", data: ids.map(id=>counts[id]) }] },
+        options: {
+          responsive: true,
+          plugins:{ legend:{ display:false } },
+          scales:{
+            x:{ ticks:{ color:"#9ca3af" }, grid:{ color:"rgba(255,255,255,.06)" } },
+            y:{ ticks:{ color:"#9ca3af" }, grid:{ color:"rgba(255,255,255,.06)" } }
+          }
+        }
+      });
+    }
+
+    function renderAlerts(alerts){
+      alertsTbl.innerHTML = "";
+      if(!alerts || !alerts.length){
+        alertsTbl.innerHTML = `<tr><td colspan="4" style="color:var(--muted)">No alerts above threshold.</td></tr>`;
+        return;
+      }
+      for(const a of alerts){
+        const score = Number(a.score ?? 0);
+        const sev   = severityFor(score);
+        const tr    = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="mono">${a.row_index}</td>
+          <td>${labelFor(a.pred)}</td>
+          <td class="${sev.cls}">${sev.txt}</td>
+          <td class="right mono">${score.toFixed(4)}</td>
+        `;
+        alertsTbl.appendChild(tr);
+      }
+    }
+
+    async function fetchModelInfo(){
+      try{
+        const res = await fetch("/model_info");
+        if(!res.ok) return;
+        const d = await res.json();
+        if(!d.available) return;
+
+        $("miAccuracy").textContent = d.accuracy != null ? (d.accuracy*100).toFixed(2)+"%" : "—";
+        $("miTag").textContent   = d.model_tag  ?? "—";
+        $("miTrain").textContent = (d.n_train ?? "—").toLocaleString();
+        $("miTest").textContent  = (d.n_test  ?? "—").toLocaleString();
+
+        const f1Tbl = $("f1Tbl");
+        f1Tbl.innerHTML = "";
+        const f1   = d.per_class_f1 ?? {};
+        const keys = Object.keys(f1).map(Number).sort((a,b)=>a-b);
+        for(const k of keys){
+          const val  = f1[String(k)];
+          const pct  = (val*100).toFixed(2);
+          const barW = (val*100).toFixed(1);
+          const tr   = document.createElement("tr");
+          tr.className = "f1-row";
+          tr.innerHTML = `
+            <td>${labelFor(k)}</td>
+            <td class="mono">${pct}%</td>
+            <td><div class="f1-bar-wrap"><div class="f1-bar" style="width:${barW}%"></div></div></td>
+          `;
+          f1Tbl.appendChild(tr);
+        }
+      }catch(_){}
+    }
+
+    async function run(){
+      clearError();
+      const f = $("file").files[0];
+      if(!f){ setStatus("err","Choose a .csv file first."); return; }
+
+      const threshold = Number(thr.value);
+      setStatus("","Uploading + scoring…");
+
+      ["rows","flagged","clean","avg"].forEach(id => $(id).textContent = "—");
+      ["flaggedPct","cleanPct"].forEach(id => $(id).textContent = "");
+      $("maxScore").textContent = "Max: —";
+      modelTag.textContent = "Model: —";
+      perf.textContent = "Perf: —";
+      $("splitBar").style.display = "none";
+      renderAlerts([]);
+
+      const fd = new FormData();
+      fd.append("file", f);
+
+      try{
+        const res  = await fetch(`/predict_summary?top_k=50&min_score=${encodeURIComponent(threshold)}`, { method:"POST", body:fd });
+        const text = await res.text();
+        if(!res.ok) throw new Error(`HTTP ${res.status}\n\n${text}`);
+
+        const data     = JSON.parse(text);
+        const nRows    = data.n_rows ?? 0;
+        const flagged  = data.alert_count_above_threshold ?? 0;
+        const clean    = nRows - flagged;
+        const fPct     = nRows > 0 ? ((flagged/nRows)*100).toFixed(1) : "0.0";
+        const cPct     = nRows > 0 ? ((clean/nRows)*100).toFixed(1)   : "100.0";
+
+        $("rows").textContent    = nRows.toLocaleString();
+        $("flagged").textContent = flagged.toLocaleString();
+        $("flaggedPct").textContent = `${fPct}% of traffic`;
+        $("clean").textContent   = clean.toLocaleString();
+        $("cleanPct").textContent = `${cPct}% of traffic`;
+        $("avg").textContent     = data.avg_score != null ? Number(data.avg_score).toFixed(4) : "—";
+        $("maxScore").textContent = `Max: ${data.max_score != null ? Number(data.max_score).toFixed(6) : "—"}`;
+
+        $("splitBar").style.display   = "block";
+        $("splitFill").style.width    = fPct + "%";
+        $("splitLeft").textContent    = `Flagged ${fPct}%`;
+        $("splitRight").textContent   = `Clean ${cPct}%`;
+
+        modelTag.textContent = `Model: ${data.model_tag ?? "—"}`;
+        perf.textContent     = `Perf: ${data.elapsed_ms ?? "—"} ms · ${data.rows_per_sec ?? "—"} rows/s`;
+
+        renderChart(data.prediction_counts || {});
+        renderAlerts(data.top_alerts);
+
+        setStatus("ok", `Done · ${f.name}`);
+      }catch(e){
+        showError(String(e));
+      }
+    }
+
+    $("run").addEventListener("click", run);
+    fetchModelInfo();
+  </script>
+</body>
+</html>
