@@ -4,427 +4,696 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Wi-Fi IDS</title>
-
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <style>
     :root{
-      --bg:#0b0f17;
-      --panel:#111827;
-      --panel2:#0f172a;
-      --border:#243041;
-      --text:#e5e7eb;
-      --muted:#9ca3af;
-      --good:#22c55e;
-      --warn:#f59e0b;
-      --bad:#ef4444;
+      --bg:#080c12;
+      --panel:#0d1117;
+      --panel2:#0a0e14;
+      --border:#1e2d3d;
+      --border2:#243447;
+      --text:#cdd9e5;
+      --muted:#768390;
+      --accent:#1b6ca8;
+      --accent2:#2188cc;
+      --good:#2da44e;
+      --warn:#e3a218;
+      --bad:#f85149;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
-    *{box-sizing:border-box}
+    *{box-sizing:border-box;margin:0;padding:0}
     body{
-      margin:0;
       background:var(--bg);
       color:var(--text);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-size:13px;
+      min-height:100vh;
     }
-    .wrap{max-width:1100px;margin:0 auto;padding:18px}
 
-    .top{
-      display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;
-      padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--panel);
+    /* ── Top bar ── */
+    .topbar{
+      background:var(--panel);
+      border-bottom:1px solid var(--border);
+      padding:0 20px;
+      height:52px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
     }
-    .title{display:flex;flex-direction:column;gap:4px}
-    .title h1{margin:0;font-size:16px}
-    .title .sub{color:var(--muted);font-size:12px}
+    .brand{display:flex;align-items:center;gap:10px}
+    .brand-icon{
+      width:28px;height:28px;border-radius:6px;
+      background:linear-gradient(135deg,#1b6ca8,#0d3d6b);
+      display:flex;align-items:center;justify-content:center;
+      font-size:14px;font-family:var(--mono);color:#7ec8e3;font-weight:700;
+    }
+    .brand-name{font-size:14px;font-weight:600;letter-spacing:.3px}
+    .brand-sub{font-size:10px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-top:1px}
 
-    .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .topbar-right{display:flex;align-items:center;gap:10px}
+
+    .model-toggle{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+    .model-toggle button{
+      border:none;padding:6px 12px;font-size:11px;font-weight:500;
+      background:transparent;color:var(--muted);cursor:pointer;letter-spacing:.3px;
+    }
+    .model-toggle button:hover{color:var(--text)}
+    .model-toggle button.active{background:var(--accent);color:#fff}
+
     input[type="file"]{
-      padding:8px 10px;border-radius:10px;border:1px dashed var(--border);
-      background:var(--panel2);color:var(--muted);
-    }
-    button{
+      font-size:11px;color:var(--muted);
+      background:var(--panel2);
       border:1px solid var(--border);
-      background:#0b1220;color:var(--text);
-      padding:9px 12px;border-radius:10px;cursor:pointer;
+      border-radius:6px;padding:6px 10px;
+      cursor:pointer;
     }
-    button:hover{background:#0d1527}
+    .scan-btn{
+      background:var(--accent);
+      border:1px solid var(--accent2);
+      color:#fff;padding:7px 18px;
+      border-radius:6px;cursor:pointer;
+      font-size:12px;font-weight:600;
+      letter-spacing:.8px;text-transform:uppercase;
+    }
+    .scan-btn:hover{background:var(--accent2)}
 
-    .status{margin-top:10px;color:var(--muted);font-size:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .dot{width:9px;height:9px;border-radius:999px;background:var(--warn)}
-    .dot.ok{background:var(--good)}
-    .dot.err{background:var(--bad)}
-    .pill{
-      padding:4px 8px;border-radius:999px;border:1px solid var(--border);
-      background:var(--panel);color:var(--muted);font-size:12px;
+    /* ── Status strip ── */
+    .statusbar{
+      background:var(--panel2);
+      border-bottom:1px solid var(--border);
+      padding:8px 20px;
+      display:flex;align-items:center;gap:16px;flex-wrap:wrap;
     }
+    .status-badge{
+      display:flex;align-items:center;gap:6px;
+      padding:3px 10px;border-radius:4px;
+      font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;
+      font-family:var(--mono);
+      background:#0d1117;border:1px solid var(--border2);color:var(--muted);
+    }
+    .status-badge.scanning{border-color:var(--warn);color:var(--warn)}
+    .status-badge.live{border-color:#39c5cf;color:#39c5cf;background:rgba(57,197,207,.07);animation:pulse-live 1s infinite}
+    .status-badge.threat{border-color:var(--bad);color:var(--bad);background:rgba(248,81,73,.07)}
+    .status-badge.clear{border-color:var(--good);color:var(--good);background:rgba(45,164,78,.07)}
+    @keyframes pulse-live{0%,100%{opacity:1}50%{opacity:.6}}
+    .status-dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+    .status-meta{font-size:11px;color:var(--muted);font-family:var(--mono)}
+    .status-meta span{color:var(--text)}
 
     .error{
-      display:none;margin-top:10px;
-      padding:10px 12px;border-radius:10px;
-      border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.08);
-      color:#fecaca;white-space:pre-wrap;font-size:12px;
+      margin:10px 20px 0;
+      padding:10px 14px;border-radius:6px;
+      border:1px solid rgba(248,81,73,.4);background:rgba(248,81,73,.08);
+      color:#ffa198;font-size:12px;white-space:pre-wrap;display:none;
     }
 
-    .grid{margin-top:14px;display:grid;grid-template-columns:1fr;gap:14px}
-    @media(min-width:900px){.grid{grid-template-columns:1.25fr .75fr}}
+    /* ── Main layout ── */
+    .main{padding:16px 20px;display:flex;flex-direction:column;gap:14px}
+    .grid{display:grid;grid-template-columns:1fr;gap:14px}
+    @media(min-width:900px){.grid{grid-template-columns:1.3fr .7fr}}
 
+    /* ── Panels ── */
     .panel{
-      border:1px solid var(--border);border-radius:12px;background:var(--panel);padding:12px;
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:8px;
+      overflow:hidden;
     }
-    .panel h2{margin:0 0 10px 0;font-size:13px;color:var(--muted);font-weight:600}
+    .panel-head{
+      padding:10px 14px;
+      border-bottom:1px solid var(--border);
+      display:flex;align-items:center;justify-content:space-between;
+    }
+    .panel-title{
+      font-size:10px;font-weight:600;letter-spacing:1px;
+      text-transform:uppercase;color:var(--muted);
+      font-family:var(--mono);
+    }
+    .panel-body{padding:14px}
 
-    /* Summary cards */
-    .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-    @media(min-width:650px){.cards{grid-template-columns:repeat(4,1fr)}}
-    .card{
+    /* ── Metric cards ── */
+    .metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    @media(min-width:600px){.metrics{grid-template-columns:repeat(4,1fr)}}
+    .metric{
       background:var(--panel2);border:1px solid var(--border);
-      border-radius:12px;padding:10px;
+      border-radius:6px;padding:12px;
     }
-    .card-label{color:var(--muted);font-size:11px}
-    .card-value{margin-top:6px;font-size:18px;font-weight:700}
-    .card-sub{font-size:11px;color:var(--muted);margin-top:3px}
+    .metric-label{
+      font-size:9px;letter-spacing:1px;text-transform:uppercase;
+      color:var(--muted);font-family:var(--mono);
+    }
+    .metric-value{
+      font-size:22px;font-weight:700;margin-top:6px;
+      font-family:var(--mono);letter-spacing:-1px;
+    }
+    .metric-sub{font-size:10px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
 
-    /* Traffic split bar */
-    .split-bar{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--panel2);display:none}
-    .split-bar-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:6px}
-    .split-track{height:8px;border-radius:999px;background:var(--border);overflow:hidden}
-    .split-fill{height:100%;border-radius:999px;background:var(--bad);transition:width .3s}
+    /* ── Split bar ── */
+    .split-wrap{
+      margin-top:10px;padding:10px 12px;
+      background:var(--panel2);border:1px solid var(--border);border-radius:6px;
+      display:none;
+    }
+    .split-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:6px;font-family:var(--mono)}
+    .split-track{height:6px;border-radius:3px;background:var(--border2);overflow:hidden}
+    .split-fill{height:100%;border-radius:3px;background:var(--bad);transition:width .3s}
 
-    .row{
+    /* ── Threshold ── */
+    .thr-row{
       display:flex;gap:10px;align-items:center;flex-wrap:wrap;
-      padding:10px;border-radius:12px;border:1px solid var(--border);background:var(--panel2);
-      margin-top:10px;
+      padding:9px 12px;background:var(--panel2);border:1px solid var(--border);
+      border-radius:6px;margin-top:10px;
     }
-    .row label{font-size:12px;color:var(--muted)}
-    input[type="range"]{width:220px}
-    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace}
-    .right{text-align:right}
+    .thr-row label{font-size:10px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;font-family:var(--mono)}
+    input[type="range"]{width:180px;accent-color:var(--accent)}
+    .pill{
+      padding:2px 8px;border-radius:4px;border:1px solid var(--border);
+      background:var(--panel2);color:var(--muted);font-size:11px;font-family:var(--mono);
+    }
 
-    table{width:100%;border-collapse:collapse;background:var(--panel2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-    th,td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px;text-align:left}
-    th{color:var(--muted);font-weight:600}
-    tr:hover td{background:rgba(255,255,255,.03)}
-    .sev-high{color:var(--bad);font-weight:700}
-    .sev-med{color:var(--warn);font-weight:700}
-    .sev-low{color:var(--good);font-weight:700}
+    /* ── Attack type cards ── */
+    .attack-cards{display:flex;flex-wrap:wrap;gap:8px}
+    .attack-card{
+      background:var(--panel2);border:1px solid var(--border);
+      border-radius:6px;padding:10px 14px;min-width:88px;
+      cursor:pointer;transition:border-color .15s,background .15s;
+    }
+    .attack-card:hover{border-color:var(--border2)}
+    .attack-card.active{border-color:var(--accent);background:#0d1e30}
+    .attack-card-name{font-size:10px;color:var(--muted);letter-spacing:.3px;text-transform:uppercase;font-family:var(--mono)}
+    .attack-card-count{font-size:20px;font-weight:700;margin-top:5px;font-family:var(--mono)}
 
-    /* Model info panel */
-    .model-grid{display:grid;grid-template-columns:1fr;gap:16px}
-    @media(min-width:700px){.model-grid{grid-template-columns:180px 1fr}}
-    .model-meta{display:flex;flex-direction:column;gap:6px}
-    .accuracy-big{font-size:32px;font-weight:700;color:var(--good)}
-    .model-stat{font-size:12px;color:var(--muted)}
-    .model-stat span{color:var(--text)}
-    .f1-row td:first-child{color:var(--text)}
-    .f1-bar-wrap{height:6px;background:var(--border);border-radius:999px;overflow:hidden;width:100px}
-    .f1-bar{height:100%;border-radius:999px;background:#3b82f6}
+    /* ── Export button ── */
+    .export-btn{
+      font-size:10px;padding:4px 10px;border-radius:4px;
+      border:1px solid var(--border);background:transparent;
+      color:var(--muted);cursor:pointer;letter-spacing:.5px;text-transform:uppercase;
+      font-family:var(--mono);
+    }
+    .export-btn:hover{color:var(--text);border-color:var(--border2)}
 
-    .footer{margin-top:10px;color:var(--muted);font-size:12px}
+    /* ── Footer ── */
+    .panel-foot{
+      padding:7px 14px;border-top:1px solid var(--border);
+      font-size:10px;color:var(--muted);font-family:var(--mono);
+    }
+
+    /* ── Live progress strip ── */
+    .live-strip{
+      background:var(--panel2);border-bottom:1px solid var(--border);
+      padding:7px 20px;display:none;align-items:center;gap:12px;flex-wrap:wrap;
+    }
+    .live-strip.visible{display:flex}
+    .live-progress-track{flex:1;height:4px;border-radius:2px;background:var(--border2);overflow:hidden;min-width:120px}
+    .live-progress-fill{height:100%;border-radius:2px;background:#39c5cf;transition:width .2s}
+    .live-counter{font-size:11px;color:#39c5cf;font-family:var(--mono);white-space:nowrap}
+    .stop-btn{
+      font-size:10px;padding:3px 10px;border-radius:4px;
+      border:1px solid var(--bad);background:transparent;
+      color:var(--bad);cursor:pointer;letter-spacing:.5px;text-transform:uppercase;font-family:var(--mono);
+    }
+    .stop-btn:hover{background:rgba(248,81,73,.1)}
+    .live-btn{
+      background:transparent;border:1px solid #39c5cf;color:#39c5cf;
+      padding:7px 14px;border-radius:6px;cursor:pointer;
+      font-size:12px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;
+    }
+    .live-btn:hover{background:rgba(57,197,207,.1)}
   </style>
 </head>
-
 <body>
-  <div class="wrap">
 
-    <!-- Header -->
-    <div class="top">
-      <div class="title">
-        <h1>Wi-Fi IDS</h1>
-        <div class="sub">Upload processed features CSV to scan for attacks</div>
-      </div>
-      <div class="controls">
-        <input id="file" type="file" accept=".csv" />
-        <button id="run">Run</button>
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-icon">IDS</div>
+      <div>
+        <div class="brand-name">Wi-Fi IDS</div>
+        <div class="brand-sub">Wireless Intrusion Detection</div>
       </div>
     </div>
-
-    <div class="status">
-      <div id="dot" class="dot"></div>
-      <div id="statusText">Choose a CSV and click Run.</div>
-      <span class="pill" id="modelTag">Model: —</span>
-      <span class="pill" id="perf">Perf: —</span>
+    <div class="topbar-right">
+      <div class="model-toggle">
+        <button class="active" data-model="lr">Logistic Reg</button>
+        <button data-model="rf">Random Forest</button>
+      </div>
+      <input id="file" type="file" accept=".csv" />
+      <button class="scan-btn" id="run">Scan</button>
+      <button class="live-btn" id="runLive">Live</button>
     </div>
+  </div>
 
-    <div id="errorBox" class="error"></div>
+  <!-- Status strip -->
+  <div class="statusbar">
+    <div class="status-badge" id="statusBadge">
+      <div class="status-dot"></div>
+      <span id="statusText">IDLE</span>
+    </div>
+    <div class="status-meta">Model: <span id="modelTag">—</span></div>
+    <div class="status-meta">Last scan: <span id="lastScan">never</span></div>
+    <div class="status-meta" id="perf"></div>
+  </div>
 
-    <!-- Main grid -->
+  <!-- Live progress strip -->
+  <div class="live-strip" id="liveStrip">
+    <div class="live-counter">LIVE — <span id="liveProcessed">0</span> / <span id="liveTotal">0</span> packets</div>
+    <div class="live-progress-track">
+      <div class="live-progress-fill" id="liveProgressFill" style="width:0%"></div>
+    </div>
+    <button class="stop-btn" id="stopBtn">Stop</button>
+  </div>
+
+  <div id="errorBox" class="error"></div>
+
+  <div class="main">
     <div class="grid">
 
-      <!-- Left: Detection summary -->
+      <!-- Left: Traffic analysis -->
       <div class="panel">
-        <h2>Detection Summary</h2>
-
-        <div class="cards">
-          <div class="card">
-            <div class="card-label">Rows scanned</div>
-            <div class="card-value" id="rows">—</div>
-          </div>
-          <div class="card">
-            <div class="card-label">Flagged</div>
-            <div class="card-value" id="flagged">—</div>
-            <div class="card-sub" id="flaggedPct"></div>
-          </div>
-          <div class="card">
-            <div class="card-label">Clean</div>
-            <div class="card-value" id="clean">—</div>
-            <div class="card-sub" id="cleanPct"></div>
-          </div>
-          <div class="card">
-            <div class="card-label">Avg confidence</div>
-            <div class="card-value" id="avg">—</div>
-          </div>
+        <div class="panel-head">
+          <div class="panel-title">Traffic Analysis</div>
         </div>
-
-        <!-- Flagged vs clean bar -->
-        <div class="split-bar" id="splitBar">
-          <div class="split-bar-labels">
-            <span id="splitLeft">Flagged 0%</span>
-            <span id="splitRight">Clean 100%</span>
+        <div class="panel-body">
+          <div class="metrics">
+            <div class="metric">
+              <div class="metric-label">Packets</div>
+              <div class="metric-value" id="rows">—</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Threats</div>
+              <div class="metric-value" id="flagged" style="color:var(--bad)">—</div>
+              <div class="metric-sub" id="flaggedPct"></div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Benign</div>
+              <div class="metric-value" id="clean" style="color:var(--good)">—</div>
+              <div class="metric-sub" id="cleanPct"></div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Avg Conf</div>
+              <div class="metric-value" id="avg">—</div>
+            </div>
           </div>
-          <div class="split-track">
-            <div class="split-fill" id="splitFill" style="width:0%"></div>
+
+          <div class="split-wrap" id="splitBar">
+            <div class="split-labels">
+              <span id="splitLeft">Threats 0%</span>
+              <span id="splitRight">Benign 100%</span>
+            </div>
+            <div class="split-track">
+              <div class="split-fill" id="splitFill" style="width:0%"></div>
+            </div>
           </div>
-        </div>
 
-        <!-- Threshold -->
-        <div class="row">
-          <label for="thr">Alert threshold:</label>
-          <input id="thr" type="range" min="0.50" max="0.99" step="0.01" value="0.90" />
-          <span class="pill mono" id="thrVal">0.90</span>
-          <span class="pill" id="maxScore">Max: —</span>
-        </div>
+          <div class="thr-row">
+            <label for="thr">Threshold</label>
+            <input id="thr" type="range" min="0.50" max="0.99" step="0.01" value="0.90" />
+            <span class="pill" id="thrVal">0.90</span>
+            <span class="pill" id="maxScore">Max: —</span>
+          </div>
 
-        <!-- Attack distribution chart -->
-        <div style="margin-top:12px">
-          <canvas id="bar"></canvas>
+          <div style="margin-top:12px">
+            <canvas id="bar"></canvas>
+          </div>
         </div>
       </div>
 
-      <!-- Right: Top alerts -->
+      <!-- Right: Threat types -->
       <div class="panel">
-        <h2>Top alerts</h2>
-
-        <table>
-          <thead>
-            <tr>
-              <th class="mono">row</th>
-              <th>type</th>
-              <th>sev</th>
-              <th class="right mono">score</th>
-            </tr>
-          </thead>
-          <tbody id="alertsTbl">
-            <tr><td colspan="4" style="color:var(--muted)">No data yet.</td></tr>
-          </tbody>
-        </table>
-
-        <div class="footer">
-          <span class="mono">POST /predict_summary</span> · Swagger at <span class="mono">/docs</span>
+        <div class="panel-head">
+          <div class="panel-title">Threat Types</div>
+        </div>
+        <div class="panel-body">
+          <div id="attackCards" class="attack-cards">
+            <div style="color:var(--muted);font-size:11px;font-family:var(--mono)">Awaiting scan…</div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Bottom: Model info -->
-    <div class="panel" style="margin-top:14px">
-      <h2>Model Info</h2>
-      <div class="model-grid">
-        <div class="model-meta">
-          <div class="accuracy-big" id="miAccuracy">—</div>
-          <div class="model-stat">Overall accuracy</div>
-          <div style="margin-top:10px;display:flex;flex-direction:column;gap:4px">
-            <div class="model-stat">Model: <span id="miTag">—</span></div>
-            <div class="model-stat">Train: <span id="miTrain">—</span> samples</div>
-            <div class="model-stat">Test: <span id="miTest">—</span> samples</div>
-          </div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Attack type</th>
-              <th>F1 score</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="f1Tbl">
-            <tr><td colspan="3" style="color:var(--muted)">Loading…</td></tr>
-          </tbody>
-        </table>
+    <!-- Packet timeline -->
+    <div class="panel" id="timelinePanel" style="display:none">
+      <div class="panel-head">
+        <div class="panel-title">Packet Timeline</div>
+        <button class="export-btn" id="exportBtn">Export CSV</button>
       </div>
+      <div class="panel-body">
+        <canvas id="scatter"></canvas>
+      </div>
+      <div class="panel-foot">Each dot is a flagged packet — x axis = position in file, y axis = attack type · click a threat card to filter</div>
     </div>
-
   </div>
 
   <script>
     const $ = id => document.getElementById(id);
 
+    let selectedModel = "lr";
+    let lastAlerts    = [];
+    let activeFilter  = null;
+    let barChart      = null;
+    let scatterChart  = null;
+
+    document.querySelectorAll(".model-toggle button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".model-toggle button").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        selectedModel = btn.dataset.model;
+      });
+    });
+
     const LABELS = {
-      1:  "Deauth",
-      2:  "Disas",
-      3:  "Re/Assoc",
-      4:  "Rogue AP",
-      5:  "Krack",
-      6:  "Kr00k",
-      7:  "SSH",
-      8:  "Botnet",
-      9:  "Malware",
-      10: "SQL Injection",
-      11: "SSDP",
-      12: "Evil Twin",
-      13: "Website Spoofing",
+      0:"Normal",
+      1:"Deauth", 2:"Disas", 3:"Re/Assoc", 4:"Rogue AP",
+      5:"Krack", 6:"Kr00k", 7:"SSH", 8:"Botnet", 9:"Malware",
+      10:"SQL Inject", 11:"SSDP", 12:"Evil Twin", 13:"Web Spoof",
     };
 
-    const labelFor  = id => LABELS[+id] ?? `Attack ${+id}`;
-    const severityFor = s => s >= 0.97 ? {txt:"HIGH",cls:"sev-high"} : s >= 0.93 ? {txt:"MED",cls:"sev-med"} : {txt:"LOW",cls:"sev-low"};
-
-    const dot        = $("dot");
-    const statusText = $("statusText");
-    const errorBox   = $("errorBox");
-    const modelTag   = $("modelTag");
-    const perf       = $("perf");
-    const thr        = $("thr");
-    const thrVal     = $("thrVal");
-    const alertsTbl  = $("alertsTbl");
-
-    let chart = null;
+    const COLORS = [
+      "#3fb950",  // 0: Normal — green
+      "#f85149","#f0883e","#e3b341","#39c5cf",
+      "#58a6ff","#a371f7","#ff7b72","#79c0ff","#56d364",
+      "#bc8cff","#6e7681","#30a14e","#e3b341"
+    ];
+    const colorFor = id => (+id === 0) ? COLORS[0] : COLORS[1 + ((+id - 1) % (COLORS.length - 1))];
+    const labelFor = id => LABELS[+id] ?? `Attack ${+id}`;
 
     thr.addEventListener("input", () => { thrVal.textContent = Number(thr.value).toFixed(2); });
 
-    function setStatus(kind, text){
-      dot.classList.remove("ok","err");
-      if(kind==="ok")  dot.classList.add("ok");
-      if(kind==="err") dot.classList.add("err");
-      statusText.textContent = text;
+    function setStatus(state, text){
+      const badge = $("statusBadge");
+      badge.className = "status-badge" + (state ? " " + state : "");
+      $("statusText").textContent = text;
     }
-    function showError(msg){ errorBox.style.display="block"; errorBox.textContent=msg; setStatus("err","Error"); }
-    function clearError(){ errorBox.style.display="none"; errorBox.textContent=""; }
+    function showError(msg){ $("errorBox").style.display="block"; $("errorBox").textContent=msg; setStatus("","IDLE"); }
+    function clearError(){ $("errorBox").style.display="none"; }
 
-    function renderChart(counts){
-      const ids  = Object.keys(counts).map(Number).sort((a,b)=>a-b);
-      const ctx  = $("bar").getContext("2d");
-      if(chart) chart.destroy();
-      chart = new Chart(ctx, {
-        type: "bar",
-        data: { labels: ids.map(labelFor), datasets:[{ label:"Count", data: ids.map(id=>counts[id]) }] },
-        options: {
-          responsive: true,
+    function renderBarChart(counts){
+      const ids = Object.keys(counts).map(Number).sort((a,b)=>a-b);
+      const ctx = $("bar").getContext("2d");
+      if(barChart) barChart.destroy();
+      barChart = new Chart(ctx, {
+        type:"bar",
+        data:{
+          labels: ids.map(labelFor),
+          datasets:[{
+            data: ids.map(id => counts[id]),
+            backgroundColor: ids.map(id => colorFor(id) + "99"),
+            borderColor: ids.map(id => colorFor(id)),
+            borderWidth:1,
+          }]
+        },
+        options:{
+          responsive:true,
           plugins:{ legend:{ display:false } },
           scales:{
-            x:{ ticks:{ color:"#9ca3af" }, grid:{ color:"rgba(255,255,255,.06)" } },
-            y:{ ticks:{ color:"#9ca3af" }, grid:{ color:"rgba(255,255,255,.06)" } }
+            x:{ ticks:{ color:"#768390", font:{ family:"monospace", size:10 } }, grid:{ color:"rgba(255,255,255,.04)" } },
+            y:{ ticks:{ color:"#768390", font:{ family:"monospace", size:10 } }, grid:{ color:"rgba(255,255,255,.04)" } }
           }
         }
       });
     }
 
-    function renderAlerts(alerts){
-      alertsTbl.innerHTML = "";
-      if(!alerts || !alerts.length){
-        alertsTbl.innerHTML = `<tr><td colspan="4" style="color:var(--muted)">No alerts above threshold.</td></tr>`;
+    function renderAttackCards(counts){
+      const container = $("attackCards");
+      container.innerHTML = "";
+      const ids = Object.keys(counts).map(Number).sort((a,b)=>a-b);
+      if(!ids.length){
+        container.innerHTML = `<div style="color:var(--muted);font-size:11px;font-family:var(--mono)">No threats detected.</div>`;
         return;
       }
-      for(const a of alerts){
-        const score = Number(a.score ?? 0);
-        const sev   = severityFor(score);
-        const tr    = document.createElement("tr");
-        tr.innerHTML = `
-          <td class="mono">${a.row_index}</td>
-          <td>${labelFor(a.pred)}</td>
-          <td class="${sev.cls}">${sev.txt}</td>
-          <td class="right mono">${score.toFixed(4)}</td>
+      for(const id of ids){
+        const div = document.createElement("div");
+        div.className = "attack-card" + (activeFilter === id ? " active" : "");
+        div.dataset.id = id;
+        div.innerHTML = `
+          <div class="attack-card-name">${labelFor(id)}</div>
+          <div class="attack-card-count" style="color:${colorFor(id)}">${counts[id].toLocaleString()}</div>
         `;
-        alertsTbl.appendChild(tr);
+        div.addEventListener("click", () => {
+          activeFilter = activeFilter === id ? null : id;
+          document.querySelectorAll(".attack-card").forEach(c => {
+            c.classList.toggle("active", +c.dataset.id === activeFilter);
+          });
+          renderScatter(lastAlerts);
+        });
+        container.appendChild(div);
       }
     }
 
-    async function fetchModelInfo(){
-      try{
-        const res = await fetch("/model_info");
-        if(!res.ok) return;
-        const d = await res.json();
-        if(!d.available) return;
+    function renderScatter(alerts){
+      const panel = $("timelinePanel");
+      if(!alerts || !alerts.length){ panel.style.display="none"; return; }
+      panel.style.display="block";
 
-        $("miAccuracy").textContent = d.accuracy != null ? (d.accuracy*100).toFixed(2)+"%" : "—";
-        $("miTag").textContent   = d.model_tag  ?? "—";
-        $("miTrain").textContent = (d.n_train ?? "—").toLocaleString();
-        $("miTest").textContent  = (d.n_test  ?? "—").toLocaleString();
+      const byType = {};
+      for(const a of alerts){
+        if(!byType[a.pred]) byType[a.pred] = [];
+        byType[a.pred].push(a.row_index);
+      }
 
-        const f1Tbl = $("f1Tbl");
-        f1Tbl.innerHTML = "";
-        const f1   = d.per_class_f1 ?? {};
-        const keys = Object.keys(f1).map(Number).sort((a,b)=>a-b);
-        for(const k of keys){
-          const val  = f1[String(k)];
-          const pct  = (val*100).toFixed(2);
-          const barW = (val*100).toFixed(1);
-          const tr   = document.createElement("tr");
-          tr.className = "f1-row";
-          tr.innerHTML = `
-            <td>${labelFor(k)}</td>
-            <td class="mono">${pct}%</td>
-            <td><div class="f1-bar-wrap"><div class="f1-bar" style="width:${barW}%"></div></div></td>
-          `;
-          f1Tbl.appendChild(tr);
+      const datasets = Object.keys(byType).map(id => {
+        const dimmed = activeFilter !== null && activeFilter !== +id;
+        return {
+          label: labelFor(id),
+          data: byType[id].map(row => ({ x:row, y:+id })),
+          backgroundColor: dimmed ? colorFor(id)+"18" : colorFor(id)+"cc",
+          pointRadius: dimmed ? 3 : 5,
+          pointHoverRadius: dimmed ? 4 : 7,
+        };
+      });
+
+      const ctx = $("scatter").getContext("2d");
+      if(scatterChart) scatterChart.destroy();
+      scatterChart = new Chart(ctx, {
+        type:"scatter",
+        data:{ datasets },
+        options:{
+          responsive:true,
+          plugins:{ legend:{ display:false } },
+          scales:{
+            x:{
+              title:{ display:true, text:"Packet position in file", color:"#768390", font:{ family:"monospace", size:10 } },
+              ticks:{ color:"#768390", font:{ family:"monospace", size:10 } },
+              grid:{ color:"rgba(255,255,255,.04)" }
+            },
+            y:{
+              min:0.5, max:13.5,
+              ticks:{
+                color:"#768390",
+                font:{ family:"monospace", size:10 },
+                stepSize:1,
+                callback: val => LABELS[val] ?? ""
+              },
+              grid:{ color:"rgba(255,255,255,.04)" }
+            }
+          }
         }
-      }catch(_){}
+      });
     }
+
+    function exportCSV(){
+      if(!lastAlerts.length) return;
+      const rows = [["row_index","attack_type","attack_id"]];
+      for(const a of lastAlerts) rows.push([a.row_index, labelFor(a.pred), a.pred]);
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(new Blob([rows.map(r=>r.join(",")).join("\n")], {type:"text/csv"}));
+      link.download = "wifi_ids_alerts.csv";
+      link.click();
+    }
+
+    $("exportBtn").addEventListener("click", exportCSV);
 
     async function run(){
       clearError();
       const f = $("file").files[0];
-      if(!f){ setStatus("err","Choose a .csv file first."); return; }
+      if(!f){ setStatus("","IDLE"); showError("Choose a .csv file first."); return; }
 
-      const threshold = Number(thr.value);
-      setStatus("","Uploading + scoring…");
-
-      ["rows","flagged","clean","avg"].forEach(id => $(id).textContent = "—");
-      ["flaggedPct","cleanPct"].forEach(id => $(id).textContent = "");
+      setStatus("scanning","SCANNING");
+      ["rows","flagged","clean","avg"].forEach(id => $(id).textContent="—");
+      ["flaggedPct","cleanPct"].forEach(id => $(id).textContent="");
       $("maxScore").textContent = "Max: —";
-      modelTag.textContent = "Model: —";
-      perf.textContent = "Perf: —";
+      $("modelTag").textContent = "—";
+      $("perf").textContent = "";
       $("splitBar").style.display = "none";
-      renderAlerts([]);
+      $("timelinePanel").style.display = "none";
+      $("attackCards").innerHTML = `<div style="color:var(--muted);font-size:11px;font-family:var(--mono)">Scanning…</div>`;
+      lastAlerts = []; activeFilter = null;
 
       const fd = new FormData();
       fd.append("file", f);
 
       try{
-        const res  = await fetch(`/predict_summary?top_k=50&min_score=${encodeURIComponent(threshold)}`, { method:"POST", body:fd });
+        const res  = await fetch(`/predict_summary?top_k=300&min_score=${encodeURIComponent(Number(thr.value))}&model=${selectedModel}`, {method:"POST",body:fd});
         const text = await res.text();
         if(!res.ok) throw new Error(`HTTP ${res.status}\n\n${text}`);
 
-        const data     = JSON.parse(text);
-        const nRows    = data.n_rows ?? 0;
-        const flagged  = data.alert_count_above_threshold ?? 0;
-        const clean    = nRows - flagged;
-        const fPct     = nRows > 0 ? ((flagged/nRows)*100).toFixed(1) : "0.0";
-        const cPct     = nRows > 0 ? ((clean/nRows)*100).toFixed(1)   : "100.0";
+        const data    = JSON.parse(text);
+        const nRows   = data.n_rows ?? 0;
+        const flagged = data.alert_count_above_threshold ?? 0;
+        const clean   = nRows - flagged;
+        const fPct    = nRows > 0 ? ((flagged/nRows)*100).toFixed(1) : "0.0";
+        const cPct    = nRows > 0 ? ((clean/nRows)*100).toFixed(1)   : "100.0";
 
-        $("rows").textContent    = nRows.toLocaleString();
-        $("flagged").textContent = flagged.toLocaleString();
+        $("rows").textContent       = nRows.toLocaleString();
+        $("flagged").textContent    = flagged.toLocaleString();
         $("flaggedPct").textContent = `${fPct}% of traffic`;
-        $("clean").textContent   = clean.toLocaleString();
-        $("cleanPct").textContent = `${cPct}% of traffic`;
-        $("avg").textContent     = data.avg_score != null ? Number(data.avg_score).toFixed(4) : "—";
-        $("maxScore").textContent = `Max: ${data.max_score != null ? Number(data.max_score).toFixed(6) : "—"}`;
+        $("clean").textContent      = clean.toLocaleString();
+        $("cleanPct").textContent   = `${cPct}% of traffic`;
+        $("avg").textContent        = data.avg_score != null ? Number(data.avg_score).toFixed(4) : "—";
+        $("maxScore").textContent   = `Max: ${data.max_score != null ? Number(data.max_score).toFixed(6) : "—"}`;
+        $("modelTag").textContent   = data.model_tag ?? "—";
+        $("perf").textContent       = `${data.elapsed_ms ?? "—"} ms · ${data.rows_per_sec ?? "—"} rows/s`;
+        $("lastScan").textContent   = new Date().toLocaleTimeString();
 
-        $("splitBar").style.display   = "block";
-        $("splitFill").style.width    = fPct + "%";
-        $("splitLeft").textContent    = `Flagged ${fPct}%`;
-        $("splitRight").textContent   = `Clean ${cPct}%`;
+        $("splitBar").style.display = "block";
+        $("splitFill").style.width  = fPct + "%";
+        $("splitLeft").textContent  = `Threats ${fPct}%`;
+        $("splitRight").textContent = `Benign ${cPct}%`;
 
-        modelTag.textContent = `Model: ${data.model_tag ?? "—"}`;
-        perf.textContent     = `Perf: ${data.elapsed_ms ?? "—"} ms · ${data.rows_per_sec ?? "—"} rows/s`;
+        lastAlerts = data.top_alerts || [];
+        renderBarChart(data.prediction_counts || {});
+        renderAttackCards(data.prediction_counts || {});
+        renderScatter(lastAlerts);
 
-        renderChart(data.prediction_counts || {});
-        renderAlerts(data.top_alerts);
-
-        setStatus("ok", `Done · ${f.name}`);
+        setStatus(flagged > 0 ? "threat" : "clear", flagged > 0 ? "THREAT DETECTED" : "CLEAR");
       }catch(e){
         showError(String(e));
       }
     }
 
     $("run").addEventListener("click", run);
-    fetchModelInfo();
+
+    // ── Live mode ──
+    let liveWs = null;
+    let liveCounts = {};
+    let liveAlerts = [];
+    let livePackets = 0;
+    let liveThreats = 0;
+    let liveScoreSum = 0;
+    let liveRenderTick = 0;
+    let liveModelTag = "—";
+
+    function resetLiveState(){
+      liveCounts = {}; liveAlerts = []; livePackets = 0; liveThreats = 0; liveScoreSum = 0; liveRenderTick = 0; liveModelTag = "—";
+      activeFilter = null;
+      ["rows","flagged","clean","avg"].forEach(id => $(id).textContent="—");
+      ["flaggedPct","cleanPct"].forEach(id => $(id).textContent="");
+      $("maxScore").textContent = "Max: —";
+      $("splitBar").style.display = "none";
+      $("timelinePanel").style.display = "none";
+      $("attackCards").innerHTML = `<div style="color:var(--muted);font-size:11px;font-family:var(--mono)">Live scanning…</div>`;
+    }
+
+    function updateLiveMetrics(threshold){
+      const flagged = liveThreats;
+      const clean   = livePackets - flagged;
+      const fPct    = livePackets > 0 ? ((flagged / livePackets) * 100).toFixed(1) : "0.0";
+      const cPct    = livePackets > 0 ? ((clean   / livePackets) * 100).toFixed(1) : "100.0";
+      const avgConf = livePackets > 0 ? (liveScoreSum / livePackets).toFixed(4) : "—";
+
+      $("rows").textContent       = livePackets.toLocaleString();
+      $("flagged").textContent    = flagged.toLocaleString();
+      $("flaggedPct").textContent = `${fPct}% of traffic`;
+      $("clean").textContent      = clean.toLocaleString();
+      $("cleanPct").textContent   = `${cPct}% of traffic`;
+      $("avg").textContent        = avgConf;
+      $("splitBar").style.display = "block";
+      $("splitFill").style.width  = fPct + "%";
+      $("splitLeft").textContent  = `Threats ${fPct}%`;
+      $("splitRight").textContent = `Benign ${cPct}%`;
+    }
+
+    async function startLive(){
+      if(liveWs){ liveWs.close(); liveWs = null; }
+      clearError();
+      const f = $("file").files[0];
+      if(!f){ showError("Choose a .csv file first."); return; }
+
+      resetLiveState();
+      setStatus("live","LIVE");
+
+      const fd = new FormData();
+      fd.append("file", f);
+
+      let sessionData;
+      try{
+        const res = await fetch(`/start_live?model=${selectedModel}`, {method:"POST",body:fd});
+        const text = await res.text();
+        if(!res.ok) throw new Error(`HTTP ${res.status}\n\n${text}`);
+        sessionData = JSON.parse(text);
+      }catch(e){
+        showError(String(e)); setStatus("","IDLE"); return;
+      }
+
+      const {session_id, n_rows} = sessionData;
+      $("liveTotal").textContent = n_rows.toLocaleString();
+      $("liveProcessed").textContent = "0";
+      $("liveProgressFill").style.width = "0%";
+      $("liveStrip").classList.add("visible");
+
+      const ws = new WebSocket(`ws://${location.host}/ws/live/${session_id}?batch_size=20&delay_ms=300`);
+      liveWs = ws;
+
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if(msg.error){ showError(msg.error); ws.close(); return; }
+
+        if(msg.done){
+          $("liveStrip").classList.remove("visible");
+          $("lastScan").textContent = new Date().toLocaleTimeString();
+          $("modelTag").textContent = liveModelTag;
+          lastAlerts = liveAlerts.slice(0, 300);
+          renderBarChart(liveCounts);
+          renderAttackCards(liveCounts);
+          renderScatter(lastAlerts);
+          updateLiveMetrics(Number(thr.value));
+          setStatus(Object.keys(liveCounts).length > 0 ? "threat" : "clear",
+                    Object.keys(liveCounts).length > 0 ? "THREAT DETECTED" : "CLEAR");
+          liveWs = null;
+          return;
+        }
+
+        // accumulate batch
+        const threshold = Number(thr.value);
+        for(const row of msg.rows){
+          livePackets++;
+          liveCounts[row.pred] = (liveCounts[row.pred] || 0) + 1;
+          if(row.score !== null) liveScoreSum += row.score;
+          if(row.score === null || row.score >= threshold){
+            liveThreats++;
+            if(liveAlerts.length < 300) liveAlerts.push(row);
+          }
+        }
+        if(msg.model_tag) liveModelTag = msg.model_tag;
+
+        // progress bar
+        const pct = Math.min(100, (msg.batch_end / msg.total) * 100).toFixed(1);
+        $("liveProcessed").textContent = msg.batch_end.toLocaleString();
+        $("liveProgressFill").style.width = pct + "%";
+        $("modelTag").textContent = msg.model_tag ?? "—";
+
+        // re-render every 3 batches
+        liveRenderTick++;
+        if(liveRenderTick % 3 === 0){
+          updateLiveMetrics(threshold);
+          renderBarChart(liveCounts);
+          renderAttackCards(liveCounts);
+        }
+      };
+
+      ws.onerror = () => { showError("WebSocket error"); $("liveStrip").classList.remove("visible"); };
+      ws.onclose = () => { liveWs = null; };
+    }
+
+    function stopLive(){
+      if(liveWs){ liveWs.close(); liveWs = null; }
+      $("liveStrip").classList.remove("visible");
+      setStatus("","IDLE");
+    }
+
+    $("runLive").addEventListener("click", startLive);
+    $("stopBtn").addEventListener("click", stopLive);
   </script>
 </body>
 </html>

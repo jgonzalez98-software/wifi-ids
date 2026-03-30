@@ -32,9 +32,13 @@ def align_features(df: pd.DataFrame, feature_cols: list[str]) -> pd.DataFrame:
     return df
 
 
-def predict_df(df: pd.DataFrame) -> Dict[str, Any]:
-    pipe = load_pipeline()
-    feature_cols = load_feature_columns()
+def predict_df(
+    df: pd.DataFrame,
+    model_path: Path = MODEL_PATH,
+    features_path: Path = FEATURES_PATH,
+) -> Dict[str, Any]:
+    pipe = load_pipeline(model_path)
+    feature_cols = load_feature_columns(features_path)
 
     # match training behavior: numeric only
     X = df.select_dtypes(include=[np.number]).copy()

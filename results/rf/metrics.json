@@ -1,0 +1,100 @@
+{
+  "label_col": "attack_id",
+  "n_train": 208000,
+  "n_test": 52000,
+  "classification_report": {
+    "1": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 4000.0
+    },
+    "2": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 4000.0
+    },
+    "3": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 4000.0
+    },
+    "4": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 4000.0
+    },
+    "5": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 4000.0
+    },
+    "6": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 4000.0
+    },
+    "7": {
+      "precision": 0.9997500624843789,
+      "recall": 1.0,
+      "f1-score": 0.9998750156230471,
+      "support": 4000.0
+    },
+    "8": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 4000.0
+    },
+    "9": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 4000.0
+    },
+    "10": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 4000.0
+    },
+    "11": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 4000.0
+    },
+    "12": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 4000.0
+    },
+    "13": {
+      "precision": 1.0,
+      "recall": 0.99975,
+      "f1-score": 0.9998749843730467,
+      "support": 4000.0
+    },
+    "accuracy": 0.9999807692307693,
+    "macro avg": {
+      "precision": 0.9999807740372599,
+      "recall": 0.9999807692307693,
+      "f1-score": 0.9999807692304687,
+      "support": 52000.0
+    },
+    "weighted avg": {
+      "precision": 0.9999807740372598,
+      "recall": 0.9999807692307693,
+      "f1-score": 0.9999807692304689,
+      "support": 52000.0
+    }
+  },
+  "roc_auc_macro": 0.9999999997996795,
+  "roc_auc_weighted": 0.9999999997996795
+}
